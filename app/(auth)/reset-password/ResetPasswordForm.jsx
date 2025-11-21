@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -37,8 +36,22 @@ export default function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="w-96 p-6 bg-white shadow rounded flex flex-col gap-4">
       <h1 className="text-2xl font-bold text-center">Réinitialiser le mot de passe</h1>
-      <input type="password" placeholder="Nouveau mot de passe" value={password} onChange={e => setPassword(e.target.value)} required className="border p-2 rounded" />
-      <input type="password" placeholder="Confirmer" value={confirm} onChange={e => setConfirm(e.target.value)} required className="border p-2 rounded" />
+      <input
+        type="password"
+        placeholder="Nouveau mot de passe"
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        required
+        className="border p-2 rounded"
+      />
+      <input
+        type="password"
+        placeholder="Confirmer"
+        value={confirm}
+        onChange={e => setConfirm(e.target.value)}
+        required
+        className="border p-2 rounded"
+      />
       <button className="bg-green-600 text-white p-2 rounded">Réinitialiser</button>
       {message && <p className="text-sm text-center mt-2 text-red-600">{message}</p>}
     </form>

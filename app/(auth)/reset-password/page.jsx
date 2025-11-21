@@ -1,9 +1,6 @@
-import dynamic from "next/dynamic";
+"use client";
 
-const ResetPasswordForm = dynamic(
-  () => import("./ResetPasswordForm"),
-  { ssr: false } 
-);
+import ResetPasswordForm from "./ResetPasswordForm";
 
 export default function ResetPasswordPage() {
   return (
