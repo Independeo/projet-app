@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate --binary-targets native rhel-openssl-3.0.x"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
