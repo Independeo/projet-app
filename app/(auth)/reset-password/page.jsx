@@ -1,5 +1,9 @@
-// app/(auth)/reset-password/page.jsx
-import ResetPasswordForm from "./ResetPasswordForm";
+import dynamic from "next/dynamic";
+
+const ResetPasswordForm = dynamic(
+  () => import("./ResetPasswordForm"),
+  { ssr: false } 
+);
 
 export default function ResetPasswordPage() {
   return (
