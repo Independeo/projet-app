@@ -5,16 +5,17 @@ import { useState } from "react";
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams.get("token"); // récupère le token depuis l'URL
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (password !== confirm) {
-      alert("Les mots de passe ne correspondent pas");
+      setMessage("Les mots de passe ne correspondent pas");
       return;
     }
 
@@ -27,17 +28,24 @@ export default function ResetPasswordPage() {
     const data = await res.json();
 
     if (res.ok) {
-      alert("Mot de passe mis à jour !");
-      window.location.href = "/login";
+      setMessage("Mot de passe mis à jour !");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
     } else {
-      alert(data.error || "Erreur");
+      setMessage(data.error || "Erreur");
     }
   };
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-50">
-      <form onSubmit={handleSubmit} className="w-96 p-6 bg-white shadow rounded flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-center">Réinitialiser le mot de passe</h1>
+      <form
+        onSubmit={handleSubmit}
+        className="w-96 p-6 bg-white shadow rounded flex flex-col gap-4"
+      >
+        <h1 className="text-2xl font-bold text-center">
+          Réinitialiser le mot de passe
+        </h1>
 
         <input
           type="password"
@@ -60,6 +68,10 @@ export default function ResetPasswordPage() {
         <button className="bg-green-600 text-white p-2 rounded">
           Réinitialiser
         </button>
+
+        {message && (
+          <p className="text-sm text-center mt-2 text-red-600">{message}</p>
+        )}
       </form>
     </div>
   );
