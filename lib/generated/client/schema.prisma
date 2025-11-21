@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model activites {
+  id          BigInt    @id @default(autoincrement())
+  resultat_id BigInt
+  projet_id   BigInt
+  titre       String    @db.VarChar(400)
+  description String?
+  date_debut  DateTime?
+  date_fin    DateTime?
+  duree_jours Int?
+  ordre       Int?      @default(0)
+  metadonnees String?
+  cree_le     DateTime  @default(now())
+  modifie_le  DateTime  @default(now())
+
+  @@index([projet_id, ordre], map: "idx_projet_activite")
+  @@index([resultat_id], map: "resultat_id")
+}
+
+model amortissements {
+  id                    BigInt    @id @default(autoincrement())
+  projet_id             BigInt
+  libelle_actif         String    @db.VarChar(255)
+  date_achat            DateTime?
+  cout_achat            Decimal?  @default(0.0000) @db.Decimal(20, 4)
+  duree_utilite_mois    Int?      @default(0)
+  valeur_residuelle     Decimal?  @default(0.0000) @db.Decimal(20, 4)
+  amortissement_mensuel Decimal?  @db.Decimal(20, 4)
+  cree_le               DateTime  @default(now())
+
+  @@index([projet_id], map: "projet_id")
+}
+
+model collaborations {
+  id             BigInt               @id @default(autoincrement())
+  projet_id      BigInt
+  utilisateur_id BigInt
+  role           collaborations_role? @default(editor)
+  invite_par     BigInt?
+  accepte_le     DateTime?
+  cree_le        DateTime             @default(now())
+
+  @@index([projet_id], map: "projet_id")
+  @@index([utilisateur_id], map: "utilisateur_id")
+}
+
+model commentaires {
+  id                    BigInt   @id @default(autoincrement())
+  projet_id             BigInt
+  utilisateur_id        BigInt
+  commentaire_parent_id BigInt?
+  contenu               String
+  metadonnees           String?
+  cree_le               DateTime @default(now())
+
+  @@index([commentaire_parent_id], map: "fk_commentaire_parent")
+  @@index([projet_id], map: "projet_id")
+  @@index([utilisateur_id], map: "utilisateur_id")
+}
+
+model fichiers {
+  id              BigInt          @id @default(autoincrement())
+  projet_id       BigInt?
+  proprietaire_id BigInt?
+  cle_stockage    String          @db.VarChar(1024)
+  nom_original    String?         @db.VarChar(512)
+  type_mime       String?         @db.VarChar(256)
+  taille_octets   BigInt?         @default(0)
+  usage           fichiers_usage? @default(attachment)
+  cree_le         DateTime        @default(now())
+
+  @@index([cle_stockage(length: 255)], map: "idx_cle_stockage")
+  @@index([projet_id], map: "projet_id")
+  @@index([proprietaire_id], map: "proprietaire_id")
+}
+
+model flux_tresorerie {
+  id              BigInt    @id @default(autoincrement())
+  projet_id       BigInt
+  libelle_periode String?   @db.VarChar(100)
+  date_periode    DateTime?
+  entree          Decimal?  @default(0.0000) @db.Decimal(20, 4)
+  sortie          Decimal?  @default(0.0000) @db.Decimal(20, 4)
+  net             Decimal?  @db.Decimal(20, 4)
+  cree_le         DateTime  @default(now())
+
+  @@index([projet_id, date_periode], map: "idx_projet_periode")
+}
+
+model indicateurs_financiers {
+  id                BigInt   @id @default(autoincrement())
+  projet_id         BigInt
+  cle_indicateur    String   @db.VarChar(100)
+  valeur_indicateur Decimal? @db.Decimal(30, 10)
+  calcule_le        DateTime @default(now())
+  calcule_par       BigInt?
+
+  @@index([calcule_par], map: "calcule_par")
+  @@index([projet_id, cle_indicateur], map: "idx_projet_indicateur")
+}
+
+model lignes_budget {
+  id            BigInt   @id @default(autoincrement())
+  projet_id     BigInt
+  activite_id   BigInt?
+  ressource_id  BigInt?
+  categorie     String?  @db.VarChar(150)
+  description   String?  @db.VarChar(500)
+  annee_periode Int?     @db.SmallInt
+  montant       Decimal? @default(0.0000) @db.Decimal(20, 4)
+  devise        String?  @default("USD") @db.VarChar(8)
+  cree_le       DateTime @default(now())
+  modifie_le    DateTime @default(now())
+
+  @@index([activite_id], map: "activite_id")
+  @@index([categorie], map: "idx_categorie")
+  @@index([projet_id, annee_periode], map: "idx_projet_annee")
+  @@index([ressource_id], map: "ressource_id")
+}
+
+model modeles {
+  id               BigInt   @id @default(autoincrement())
+  identifiant_slug String   @unique(map: "identifiant_slug") @db.VarChar(200)
+  nom              String   @db.VarChar(255)
+  secteur          String?  @db.VarChar(120)
+  description      String?
+  structure        String
+  cree_par         BigInt?
+  est_public       Boolean? @default(true)
+  cree_le          DateTime @default(now())
+  modifie_le       DateTime @default(now())
+
+  @@index([cree_par], map: "cree_par")
+}
+
+model organisations {
+  id           BigInt   @id @default(autoincrement())
+  nom          String   @db.VarChar(255)
+  type         String?  @db.VarChar(100)
+  contact_json String?
+  cree_le      DateTime @default(now())
+  modifie_le   DateTime @default(now())
+}
+
+model projets {
+  id                 BigInt          @id @default(autoincrement())
+  proprietaire_id    BigInt
+  organisation_id    BigInt?
+  type               projets_type    @default(entreprise)
+  statut             projets_statut? @default(brouillon)
+  titre              String          @db.VarChar(512)
+  description_courte String?         @db.VarChar(1024)
+  metadonnees        String?
+  progression        Int?            @default(0)
+  est_public         Boolean?        @default(false)
+  cree_le            DateTime        @default(now())
+  modifie_le         DateTime        @default(now())
+
+  @@index([proprietaire_id], map: "idx_proprietaire")
+  @@index([type, statut], map: "idx_type_statut")
+  @@index([organisation_id], map: "organisation_id")
+}
+
+model ressources {
+  id             BigInt                     @id @default(autoincrement())
+  projet_id      BigInt
+  activite_id    BigInt?
+  type_ressource ressources_type_ressource? @default(MATERIEL)
+  libelle        String                     @db.VarChar(300)
+  unite          String?                    @db.VarChar(80)
+  quantite       Decimal?                   @default(0.0000) @db.Decimal(18, 4)
+  cout_unitaire  Decimal?                   @default(0.0000) @db.Decimal(18, 4)
+  frequence      ressources_frequence?      @default(one_time)
+  cout_total     Decimal?                   @db.Decimal(20, 4)
+  notes          String?
+  cree_le        DateTime                   @default(now())
+  modifie_le     DateTime                   @default(now())
+
+  @@index([activite_id], map: "activite_id")
+  @@index([projet_id, type_ressource], map: "idx_projet_ressource")
+}
+
+model resultats {
+  id          BigInt   @id @default(autoincrement())
+  projet_id   BigInt
+  titre       String   @db.VarChar(400)
+  description String?
+  ordre       Int?     @default(0)
+  cree_le     DateTime @default(now())
+  modifie_le  DateTime @default(now())
+
+  @@index([projet_id, ordre], map: "idx_projet_ordre")
+}
+
+model utilisateurs {
+  id                 BigInt            @id @default(autoincrement())
+  organisation_id    BigInt?
+  role               utilisateurs_role @default(user)
+  email              String            @unique
+  telephone          String?
+  mot_de_passe_hash  String
+  nom_utilisateur    String?
+  langue             String?           @default("fr")
+  double_auth_active Boolean?          @default(false)
+  profil             String?
+  cree_le            DateTime          @default(now())
+  modifie_le         DateTime          @default(now())
+
+  reset_token         String? // ajouté
+  reset_token_expires DateTime? // ajouté
+
+  @@index([organisation_id, role], map: "idx_org_role")
+}
+
+model versions_projet {
+  id                BigInt   @id @default(autoincrement())
+  projet_id         BigInt
+  cree_par          BigInt
+  etiquette_version String?
+  capture           String
+  cree_le           DateTime @default(now())
+
+  @@index([cree_par], map: "cree_par")
+  @@index([projet_id], map: "projet_id")
+}
+
+enum utilisateurs_role {
+  user
+  pro
+  admin
+  superadmin
+}
+
+enum collaborations_role {
+  owner
+  editor
+  viewer
+  supervisor
+}
+
+enum projets_type {
+  entreprise
+  developpement
+  mixte
+}
+
+enum ressources_type_ressource {
+  RH
+  RF
+  RMF
+  RMN
+  SERVICE
+  MATERIEL
+}
+
+enum projets_statut {
+  brouillon
+  soumis
+  en_cours_de_r_vision @map("en cours de révision")
+  approuv_             @map("approuvé")
+  rejet_               @map("rejeté")
+  archiv_              @map("archivé")
+}
+
+enum fichiers_usage {
+  attachment
+  export
+  template
+  submission
+}
+
+enum ressources_frequence {
+  one_time
+  monthly
+  quarterly
+  annual
+}
