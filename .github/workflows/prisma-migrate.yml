@@ -1,0 +1,23 @@
+name: Prisma Migrate
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}   # <-- définir explicitement un mapping vide
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Prisma migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
