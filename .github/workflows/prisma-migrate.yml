@@ -1,6 +1,10 @@
+
 name: Prisma Migrate
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
