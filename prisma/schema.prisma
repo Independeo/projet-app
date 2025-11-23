@@ -3,9 +3,8 @@ generator client {
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
-
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -23,8 +22,8 @@ model activites {
   cree_le     DateTime  @default(now())
   modifie_le  DateTime  @default(now())
 
-  @@index([projet_id, ordre], map: "idx_projet_activite")
-  @@index([resultat_id], map: "resultat_id")
+  @@index([projet_id, ordre], map: "idx_activites_projet_ordre")
+  @@index([resultat_id], map: "idx_activites_resultat")
 }
 
 model amortissements {
@@ -32,17 +31,17 @@ model amortissements {
   projet_id             BigInt
   libelle_actif         String   @db.VarChar(255)
   date_achat            DateTime?
-  cout_achat            Decimal? @default(0.0000) @db.Decimal(20, 4)
+  cout_achat            Decimal? @default(0.0000)
   duree_utilite_mois    Int?     @default(0)
-  valeur_residuelle     Decimal? @default(0.0000) @db.Decimal(20, 4)
-  amortissement_mensuel Decimal? @db.Decimal(20, 4)
+  valeur_residuelle     Decimal? @default(0.0000)
+  amortissement_mensuel Decimal?
   cree_le               DateTime @default(now())
 
-  @@index([projet_id], map: "projet_id")
+  @@index([projet_id], map: "idx_amortissements_projet")
 }
 
 model collaborations {
-  id             BigInt              @id @default(autoincrement())
+  id             BigInt               @id @default(autoincrement())
   projet_id      BigInt
   utilisateur_id BigInt
   role           collaborations_role? @default(editor)
@@ -50,8 +49,8 @@ model collaborations {
   accepte_le     DateTime?
   cree_le        DateTime @default(now())
 
-  @@index([projet_id], map: "projet_id")
-  @@index([utilisateur_id], map: "utilisateur_id")
+  @@index([projet_id], map: "idx_collab_projet")
+  @@index([utilisateur_id], map: "idx_collab_user")
 }
 
 model commentaires {
@@ -63,9 +62,9 @@ model commentaires {
   metadonnees           String?
   cree_le               DateTime @default(now())
 
-  @@index([commentaire_parent_id], map: "fk_commentaire_parent")
-  @@index([projet_id], map: "projet_id")
-  @@index([utilisateur_id], map: "utilisateur_id")
+  @@index([commentaire_parent_id], map: "idx_comment_parent")
+  @@index([projet_id], map: "idx_comment_projet")
+  @@index([utilisateur_id], map: "idx_comment_user")
 }
 
 model fichiers {
@@ -79,9 +78,9 @@ model fichiers {
   usage           fichiers_usage? @default(attachment)
   cree_le         DateTime        @default(now())
 
-  @@index([cle_stockage(length: 255)], map: "idx_cle_stockage")
-  @@index([projet_id], map: "projet_id")
-  @@index([proprietaire_id], map: "proprietaire_id")
+  @@index([cle_stockage], map: "idx_fichiers_cle")
+  @@index([projet_id], map: "idx_fichiers_projet")
+  @@index([proprietaire_id], map: "idx_fichiers_proprio")
 }
 
 model flux_tresorerie {
@@ -89,24 +88,24 @@ model flux_tresorerie {
   projet_id       BigInt
   libelle_periode String?  @db.VarChar(100)
   date_periode    DateTime?
-  entree          Decimal? @default(0.0000) @db.Decimal(20, 4)
-  sortie          Decimal? @default(0.0000) @db.Decimal(20, 4)
-  net             Decimal? @db.Decimal(20, 4)
+  entree          Decimal? @default(0.0000)
+  sortie          Decimal? @default(0.0000)
+  net             Decimal?
   cree_le         DateTime @default(now())
 
-  @@index([projet_id, date_periode], map: "idx_projet_periode")
+  @@index([projet_id, date_periode], map: "idx_flux_projet_periode")
 }
 
 model indicateurs_financiers {
   id                BigInt   @id @default(autoincrement())
   projet_id         BigInt
   cle_indicateur    String   @db.VarChar(100)
-  valeur_indicateur Decimal? @db.Decimal(30, 10)
+  valeur_indicateur Decimal?
   calcule_le        DateTime @default(now())
   calcule_par       BigInt?
 
-  @@index([calcule_par], map: "calcule_par")
-  @@index([projet_id, cle_indicateur], map: "idx_projet_indicateur")
+  @@index([calcule_par], map: "idx_indic_calcule_par")
+  @@index([projet_id, cle_indicateur], map: "idx_indic_projet_cle")
 }
 
 model lignes_budget {
@@ -117,20 +116,20 @@ model lignes_budget {
   categorie     String?  @db.VarChar(150)
   description   String?  @db.VarChar(500)
   annee_periode Int?     @db.SmallInt
-  montant       Decimal? @default(0.0000) @db.Decimal(20, 4)
+  montant       Decimal? @default(0.0000)
   devise        String?  @default("USD") @db.VarChar(8)
   cree_le       DateTime @default(now())
   modifie_le    DateTime @default(now())
 
-  @@index([activite_id], map: "activite_id")
-  @@index([categorie], map: "idx_categorie")
-  @@index([projet_id, annee_periode], map: "idx_projet_annee")
-  @@index([ressource_id], map: "ressource_id")
+  @@index([activite_id], map: "idx_lb_activite")
+  @@index([categorie], map: "idx_lb_categorie")
+  @@index([projet_id, annee_periode], map: "idx_lb_projet_annee")
+  @@index([ressource_id], map: "idx_lb_ressource")
 }
 
 model modeles {
   id               BigInt   @id @default(autoincrement())
-  identifiant_slug String   @unique(map: "identifiant_slug") @db.VarChar(200)
+  identifiant_slug String   @unique(map: "uniq_model_slug") @db.VarChar(200)
   nom              String   @db.VarChar(255)
   secteur          String?  @db.VarChar(120)
   description      String?
@@ -140,7 +139,7 @@ model modeles {
   cree_le          DateTime @default(now())
   modifie_le       DateTime @default(now())
 
-  @@index([cree_par], map: "cree_par")
+  @@index([cree_par], map: "idx_model_cree_par")
 }
 
 model organisations {
@@ -166,9 +165,9 @@ model projets {
   cree_le            DateTime        @default(now())
   modifie_le         DateTime        @default(now())
 
-  @@index([proprietaire_id], map: "idx_proprietaire")
-  @@index([type, statut], map: "idx_type_statut")
-  @@index([organisation_id], map: "organisation_id")
+  @@index([proprietaire_id], map: "idx_projets_proprietaire")
+  @@index([type, statut], map: "idx_projets_type_statut")
+  @@index([organisation_id], map: "idx_projets_org")
 }
 
 model ressources {
@@ -178,16 +177,16 @@ model ressources {
   type_ressource ressources_type_ressource? @default(MATERIEL)
   libelle        String   @db.VarChar(300)
   unite          String?  @db.VarChar(80)
-  quantite       Decimal? @default(0.0000) @db.Decimal(18, 4)
-  cout_unitaire  Decimal? @default(0.0000) @db.Decimal(18, 4)
+  quantite       Decimal? @default(0.0000)
+  cout_unitaire  Decimal? @default(0.0000)
   frequence      ressources_frequence? @default(one_time)
-  cout_total     Decimal? @db.Decimal(20, 4)
+  cout_total     Decimal?
   notes          String?
   cree_le        DateTime @default(now())
   modifie_le     DateTime @default(now())
 
-  @@index([activite_id], map: "activite_id")
-  @@index([projet_id, type_ressource], map: "idx_projet_ressource")
+  @@index([activite_id], map: "idx_ress_activite")
+  @@index([projet_id, type_ressource], map: "idx_ress_projet_type")
 }
 
 model resultats {
@@ -199,7 +198,7 @@ model resultats {
   cree_le     DateTime @default(now())
   modifie_le  DateTime @default(now())
 
-  @@index([projet_id, ordre], map: "idx_projet_ordre")
+  @@index([projet_id, ordre], map: "idx_res_projet_ordre")
 }
 
 model utilisateurs {
@@ -216,12 +215,11 @@ model utilisateurs {
   cree_le            DateTime          @default(now())
   modifie_le         DateTime          @default(now())
 
-  reset_token        String?           // ajouté
-  reset_token_expires DateTime?        // ajouté
+  reset_token         String?
+  reset_token_expires DateTime?
 
-  @@index([organisation_id, role], map: "idx_org_role")
+  @@index([organisation_id, role], map: "idx_util_org_role")
 }
-
 
 model versions_projet {
   id                BigInt   @id @default(autoincrement())
@@ -231,8 +229,8 @@ model versions_projet {
   capture           String
   cree_le           DateTime @default(now())
 
-  @@index([cree_par], map: "cree_par")
-  @@index([projet_id], map: "projet_id")
+  @@index([cree_par], map: "idx_version_cree_par")
+  @@index([projet_id], map: "idx_version_projet")
 }
 
 enum utilisateurs_role {
