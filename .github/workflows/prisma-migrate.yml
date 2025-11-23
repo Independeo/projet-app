@@ -9,6 +9,8 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}   # <-- ajouté ici pour que npm ci ait la variable
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -18,6 +20,4 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Prisma migrate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
