@@ -1,23 +1,36 @@
-name: Prisma Migrate
+name: CI
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch: {}   # <-- définir explicitement un mapping vide
+    branches: [ "main" ]
 
 jobs:
-  migrate:
+  build:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}   # <-- ajouté ici pour que npm ci ait la variable
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-      - name: Install dependencies
-        run: npm ci
+          node-version: 18
+
+      - name: Install dependencies (skip scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma generate
+
       - name: Prisma migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
+
+      - name: Build project
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run build
