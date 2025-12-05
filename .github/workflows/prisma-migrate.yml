@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies (skip scripts)
         run: npm ci --ignore-scripts
 
-      - name: Prisma generate
+      - name: Prisma generate (skip in CI for now)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma generate
