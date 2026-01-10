@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import net from 'net';
+import dns from 'dns';
 
 function parseHostPort(databaseUrl) {
   try {
@@ -18,13 +19,21 @@ if (!dbUrl) {
 }
 
 const { host, port } = parseHostPort(dbUrl);
-const socket = net.createConnection({ host, port }, () => {
-  console.log('✅ TCP OK', `${host}:${port}`);
-  socket.end();
-  process.exit(0);
-});
 
-socket.on('error', (e) => {
-  console.error('❌ TCP ERROR', e.message);
-  process.exit(1);
+dns.lookup(host, { family: 4 }, (err, address, family) => {
+  if (err) {
+    console.error('❌ DNS lookup error (IPv4):', err.message);
+    process.exit(1);
+  }
+
+  const socket = net.createConnection({ host: address, port }, () => {
+    console.log('✅ TCP OK', `${address}:${port}`);
+    socket.end();
+    process.exit(0);
+  });
+
+  socket.on('error', (e) => {
+    console.error('❌ TCP ERROR', e.message);
+    process.exit(1);
+  });
 });
