@@ -21,6 +21,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check DB connectivity
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/check-db-conn.js
+
       - name: Prisma generate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -30,6 +35,26 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
+
+      - name: Supabase CLI fallback (optional)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "No SUPABASE_SERVICE_ROLE_KEY provided — skipping Supabase CLI fallback"
+            exit 0
+          fi
+          echo "Installing Supabase CLI..."
+          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
+          echo "Logging in to Supabase CLI using service role key"
+          supabase login --service-role-key "$SUPABASE_SERVICE_ROLE_KEY" || true
+          if [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "No SUPABASE_PROJECT_REF provided — cannot run db push. Provide secret SUPABASE_PROJECT_REF or skip."
+            exit 0
+          fi
+          echo "Running supabase db push --project-ref $SUPABASE_PROJECT_REF"
+          supabase db push --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Build project
         env:
