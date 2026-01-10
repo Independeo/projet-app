@@ -1,13 +1,13 @@
-name: Build & Migrate
+name: Apply SQL migrations to Supabase
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
 
 jobs:
-  build:
+  apply-migrations:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,47 +25,46 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NODE_OPTIONS: "--dns-result-order=ipv4first"
+        run: node scripts/check-db-conn.js
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          echo "PWD:"; pwd
-          echo "Root listing:"; ls -la
-          echo "Scripts dir listing:"; ls -la scripts || true
-          echo "Running check script..."
-          node scripts/check-db-conn.js
-
-      - name: Prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NODE_OPTIONS: "--dns-result-order=ipv4first"
-        run: npx prisma generate
-
-      - name: Prisma migrate (create tables)
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NODE_OPTIONS: "--dns-result-order=ipv4first"
-        run: npx prisma migrate deploy
+          set -e
+          for f in prisma/migrations/*/migration.sql; do
+            if [ -f "$f" ]; then
+              echo "Applying $f"
+              psql -4 "$DATABASE_URL" -f "$f"
+            else
+              echo "No migration files found"
+            fi
+          done
 
       - name: Supabase CLI fallback (optional)
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
+          # If no service role key provided, skip this step
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "No SUPABASE_SERVICE_ROLE_KEY provided — skipping Supabase CLI fallback"
+            echo "No SUPABASE_SERVICE_ROLE_KEY secret provided — skipping Supabase CLI fallback"
             exit 0
           fi
+
           echo "Installing Supabase CLI..."
           curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
+
           echo "Logging in to Supabase CLI using service role key"
           supabase login --service-role-key "$SUPABASE_SERVICE_ROLE_KEY" || true
+
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
-            echo "No SUPABASE_PROJECT_REF provided — cannot run db push. Provide secret SUPABASE_PROJECT_REF or skip."
+            echo "No SUPABASE_PROJECT_REF provided — cannot run db push. Provide secret SUPABASE_PROJECT_REF or use psql step."
             exit 0
           fi
+
           echo "Running supabase db push --project-ref $SUPABASE_PROJECT_REF"
           supabase db push --project-ref "$SUPABASE_PROJECT_REF"
-
-      - name: Build project
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run build
