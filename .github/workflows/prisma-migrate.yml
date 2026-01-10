@@ -24,7 +24,13 @@ jobs:
       - name: Check DB connectivity
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: node scripts/check-db-conn.js
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "PWD:"; pwd
+          echo "Root listing:"; ls -la
+          echo "Scripts dir listing:"; ls -la scripts || true
+          echo "Running check script..."
+          node scripts/check-db-conn.js
 
       - name: Prisma generate
         env:
